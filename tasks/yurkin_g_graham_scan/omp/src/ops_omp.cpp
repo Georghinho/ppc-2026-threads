@@ -1,11 +1,15 @@
 #include "yurkin_g_graham_scan/omp/include/ops_omp.hpp"
 
 #include <algorithm>
-#include <execution>
+#include <cstddef>
+#include <ranges>
 #include <vector>
 
+#if defined(__cpp_lib_execution) && (__cpp_lib_execution >= 201603)
+#  include <execution>
+#endif
+
 #include "yurkin_g_graham_scan/common/include/common.hpp"
-#include "yurkin_g_graham_scan/seq/include/ops_seq.hpp"
 
 namespace yurkin_g_graham_scan {
 
@@ -16,20 +20,17 @@ YurkinGGrahamScanOMP::YurkinGGrahamScanOMP(const InType &in) {
 }
 
 bool YurkinGGrahamScanOMP::ValidationImpl() {
-  // Input must be non-empty (same as seq)
   return !GetInput().empty();
 }
 
 bool YurkinGGrahamScanOMP::PreProcessingImpl() {
-  // We'll perform the same preprocessing as in the sequential version,
-  // but try to use parallel-friendly operations where safe.
   auto &pts = GetInput();
   if (pts.empty()) {
     return true;
   }
 
-  // Sort points by x then y. If parallel execution policy is available,
-  // use it to speed up sorting on supporting standard libraries.
+  // Сортировка по x, затем по y. При наличии поддержки execution policy
+  // используем параллельную политику для ускорения.
 #if defined(__cpp_lib_execution) && (__cpp_lib_execution >= 201603)
   std::sort(std::execution::par, pts.begin(), pts.end(), [](const Point &a, const Point &b) {
     if (a.x != b.x) {
@@ -46,7 +47,7 @@ bool YurkinGGrahamScanOMP::PreProcessingImpl() {
   });
 #endif
 
-  // Remove duplicates (stable, sequential pass)
+  // Удаление дубликатов (последовательный проход)
   std::vector<Point> tmp;
   tmp.reserve(pts.size());
   for (const auto &p : pts) {
@@ -67,10 +68,6 @@ long double Cross(const Point &o, const Point &a, const Point &b) {
 }  // namespace
 
 bool YurkinGGrahamScanOMP::RunImpl() {
-  // The Graham / monotone chain algorithm is inherently sequential when
-  // building the hull stacks. To guarantee correctness and keep the OMP
-  // task semantics, we reuse the sequential implementation logic here.
-  // This ensures identical output to the SEQ version used in tests.
   const InType pts_in = GetInput();
   const std::size_t n = pts_in.size();
   if (n == 0) {
@@ -82,8 +79,7 @@ bool YurkinGGrahamScanOMP::RunImpl() {
     return true;
   }
 
-  // Make a local copy and sort (already sorted in PreProcessingImpl,
-  // but keep defensive copy to avoid relying on external state).
+  // Локальная копия точек; сортировка для надёжности (PreProcessing уже сортировал)
   InType pts = pts_in;
 #if defined(__cpp_lib_execution) && (__cpp_lib_execution >= 201603)
   std::sort(std::execution::par, pts.begin(), pts.end(), [](const Point &a, const Point &b) {
@@ -101,7 +97,7 @@ bool YurkinGGrahamScanOMP::RunImpl() {
   });
 #endif
 
-  // Build lower hull (sequential)
+  // Построение нижней оболочки
   OutType lower;
   lower.reserve(pts.size());
   for (const auto &p : pts) {
@@ -111,18 +107,17 @@ bool YurkinGGrahamScanOMP::RunImpl() {
     lower.push_back(p);
   }
 
-  // Build upper hull (sequential)
+  // Построение верхней оболочки (range-based обратный проход)
   OutType upper;
   upper.reserve(pts.size());
-  for (auto it = pts.rbegin(); it != pts.rend(); ++it) {
-    const auto &p = *it;
+  for (const auto &p : std::ranges::reverse_view(pts)) {
     while (upper.size() >= 2 && Cross(upper[upper.size() - 2], upper[upper.size() - 1], p) <= 0) {
       upper.pop_back();
     }
     upper.push_back(p);
   }
 
-  // Concatenate lower and upper to form full hull (without duplicate endpoints)
+  // Объединение (без дублирования крайних точек)
   OutType hull;
   hull.reserve(lower.size() + upper.size());
   for (const auto &pt : lower) {
