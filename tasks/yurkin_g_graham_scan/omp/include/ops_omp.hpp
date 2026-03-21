@@ -1,7 +1,7 @@
 #pragma once
 
-#include "yurkin_g_graham_scan/common/include/common.hpp"
 #include "task/include/task.hpp"
+#include "yurkin_g_graham_scan/common/include/common.hpp"
 
 namespace yurkin_g_graham_scan {
 

@@ -1,8 +1,8 @@
 #include "yurkin_g_graham_scan/omp/include/ops_omp.hpp"
 
-#include <vector>
 #include <algorithm>
 #include <execution>
+#include <vector>
 
 #include "yurkin_g_graham_scan/common/include/common.hpp"
 #include "yurkin_g_graham_scan/seq/include/ops_seq.hpp"
@@ -32,12 +32,16 @@ bool YurkinGGrahamScanOMP::PreProcessingImpl() {
   // use it to speed up sorting on supporting standard libraries.
 #if defined(__cpp_lib_execution) && (__cpp_lib_execution >= 201603)
   std::sort(std::execution::par, pts.begin(), pts.end(), [](const Point &a, const Point &b) {
-    if (a.x != b.x) return a.x < b.x;
+    if (a.x != b.x) {
+      return a.x < b.x;
+    }
     return a.y < b.y;
   });
 #else
   std::sort(pts.begin(), pts.end(), [](const Point &a, const Point &b) {
-    if (a.x != b.x) return a.x < b.x;
+    if (a.x != b.x) {
+      return a.x < b.x;
+    }
     return a.y < b.y;
   });
 #endif
@@ -83,12 +87,16 @@ bool YurkinGGrahamScanOMP::RunImpl() {
   InType pts = pts_in;
 #if defined(__cpp_lib_execution) && (__cpp_lib_execution >= 201603)
   std::sort(std::execution::par, pts.begin(), pts.end(), [](const Point &a, const Point &b) {
-    if (a.x != b.x) return a.x < b.x;
+    if (a.x != b.x) {
+      return a.x < b.x;
+    }
     return a.y < b.y;
   });
 #else
   std::sort(pts.begin(), pts.end(), [](const Point &a, const Point &b) {
-    if (a.x != b.x) return a.x < b.x;
+    if (a.x != b.x) {
+      return a.x < b.x;
+    }
     return a.y < b.y;
   });
 #endif
